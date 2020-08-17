@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Convolution image</title>
+<link rel="icon" href="http://example.com/favicon.png">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdn.jsdelivr.net/npm/animejs@3.0.1/lib/anime.min.js"></script>
+<head>
+<style>
+	#myKernel   {position: absolute;}
+	#achorKernel   {position: absolute;}
+	.header {
+		  padding: 30px;
+		  text-align: center;
+		  background: #99cfdd;
+		  color: white;
+		  font-size: 30px;
+		}
+	footer {
+	  padding: 30px;
+	  text-align: center;
+	  background: #99cfdd;
+	  color: white;
+	  font-size: 30px;
+	}
+	
+	div{
+		text-align: center;
+		padding: 10px;
+	}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Convolution</h1>
+  <p>Image processing</p>
+</div>
+<div>
+    สวัสดีครับ เว็บนี้จะเป็นเว็บที่อธิบายการทำงานในส่วนของ Image processing ในเรื่องของการทำ Convolution กัน
+สมมุติว่าเรามีรูปภาพสุนัขดังรูปด้านล่าง
+</div>
+<div>
+	<img id="dog" src="img\dog.jpg"  alt="The dog" >
+</div>
+<div style="margin-top: 20px;">
+  ซึ่งรูปดังกล่าวนั้นสมมุติว่ามีขนาด 35 x 23 
+</div>
+<div >
+	<canvas id="myCanvas" width="35" height="23" style="border:1px solid #d3d3d3;"></canvas>
+	<p><b>(35 x 23)</b><p>
+</div>
+<div>
+	<div style="margin-top: 20px;">
+		หรือก็คือหากเราขยายภาพจนสามารถเห็น Pixel แต่ละจุด ในภาพนั้นก็จะมีจุด pixel แนวนอน 35 จุด และ pixel แนวตั้ง 23 จุดดังรูป
+	</div>
+	<div>
+		<canvas id="myCanvasMain" width="1080" height="720" style="border:1px solid #d3d3d3;"></canvas>
+	</div>
+	<div style="margin-top: 20px;">
+		ซึ่งสีใน Pixel แต่ละจุดนั้นเกิดจากค่าสีที่แตกต่างกัน จากตัวอย่างในรูปเป็นรูป Graysclae ที่ค่าแต่ละ Pixel มีได้ตั้งแต่ 0-255 ดังรูป
+	</div>
+	<canvas id="myCanvasWithPixelValue" width="1080" height="720" style="border:1px solid #d3d3d3;"></canvas>
+	<div style="margin-top: 20px;">
+		หลังจากเรามีรูปภาพมาแล้วต่อมาเราต้องมี ตัวที่เรียกว่า Kernel ซึ่งตัวที่ชื่อว่า Kernel จะมีหน้าตาเป็นตารางที่มีค่าตัวเลขอยู่ข้างในดังรูป
+	</div>
+	<canvas id="myKernelNotMove" width="1080" height="720" style="border:1px solid #d3d3d3;"></canvas>
+	<p><b>kernel</b></p>
+	
+	<div style="margin-top: 20px;">
+		เมื่อเรามี Kernel และรูปภาพแล้ว เราก็นำ Kernel และรูปภาพมาทำ Convolution กันซึ่งการทำ Convolution นั้นคือการนำ Kernel ไปทาบแต่ละ Pixel เพื่อทำการคำนวณเพื่อให้ได้ค่า Pixel ตัวใหม่ ซึ่งการนำ Kernel มาทาบแต่ละ pixel จะเป็นดังรูปด้านล่าง
+	</div>
+	<canvas id="myCanvasConvolution" width="1080" height="720" style="border:1px solid #d3d3d3;"></canvas>
+	<canvas id="myKernel" width="1080" height="720" style="border:1px solid #d3d3d3;"></canvas>
+	
+	<div style="margin-top: 20px;">
+		โดยการคำนวณนั้นจะคำนวณโดยเอาค่าตำแหน่งช่องของ Kernel และ Pixel ของรูปภาพที่ตรงกันมาคูณกันแล้วก็เอาผลคูณทั้งหมดมาบวกกันก็จะได้ค่า Pixel ตัวใหม่มา ตามตัวอย่างสมการด้านล่าง
+	</div>
+	<div id="formular" style="font-family:Kanit,Arial, Helvetica, sans-serif;font-size:20px;font-weight: bold;">(1+2)*3</div>
+	
+	<div style="margin-top: 20px;">
+		เมื่อเราได้ค่า Pixel ตัวใหม่มาก็มาปรับค่า Pixel แล้วก็นำ Kernel ไปทาบ Pixel ถัดไปเรื่อยๆ จนหมดรูปภาพเราก็จะได้ภาพที่มีคุณลักษณะที่สอดคล้องกับค่าใน Kernel อาจจะเป็นการทำภาพเบลอ, การหาขอบของเส้น, การทำให้ภาพชัด เป็นต้น ซึ่งในตัวอย่างคือการทำภาพเบลอนั่นเองครับ
+	</div>
+	<canvas id="myOutput" width="1080" height="720" style="border:1px solid #d3d3d3;margin-bottom: 10em"></canvas>
+	<canvas id="achorKernel" width="40" height="40"></canvas>
+	
+</div>
+
+<script>
+var duration = 10;
+var delay = 500;
+var zoomSize = 30;
+var img = document.getElementById("dog");
+var kernelWidth = 3;
+var kernelHeight = 3;
+var kernelShowValue = [["1/9","1/9","1/9"],["1/9","1/9","1/9"],["1/9","1/9","1/9"]];
+var kernelValue = [[1/9,1/9,1/9],[1/9,1/9,1/9],[1/9,1/9,1/9]];
+var grayScaleValue = [];
+  document.getElementById("dog").onload = function() {
+  var c = document.getElementById("myCanvas");
+  var ctx = c.getContext("2d");
+  ctx.drawImage(img, 0, 0);
+  
+  {
+	  var cMain = document.getElementById("myCanvasMain");
+	  var ctxMain = cMain.getContext("2d");
+	  cMain.width = zoomSize * img.width;
+	  cMain.height = zoomSize * img.height;
+	  
+	  var i;
+	  var j;
+	  for (i = 0; i < img.height; i += 1) {
+		 for(j=0;j<img.width;j += 1){
+			var imgData = ctx.getImageData(j,i, 1, 1);
+			
+			ctxMain.fillStyle = 'rgb(' + imgData.data[0] + ', ' +
+							   imgData.data[1] + ', '+imgData.data[2]+')';
+			ctxMain.fillRect(j * zoomSize, i * zoomSize, zoomSize, zoomSize);
+			ctxMain.fillStyle = "green";
+			ctxMain.font = "15px Kanit";
+			var grey = (imgData.data[0]*0.3) + (imgData.data[1]*0.59)+(imgData.data[2]*0.11) 
+			//ctxMain.fillText(Math.round(grey),j * zoomSize+3, i * zoomSize+13);
+		}
+	  }
+  }
+  {
+	  var cMain = document.getElementById("myCanvasWithPixelValue");
+	  var ctxMain = cMain.getContext("2d");
+	  cMain.width = zoomSize * img.width;
+	  cMain.height = zoomSize * img.height;
+	  
+	  var i;
+	  var j;
+	  for (i = 0; i < img.height; i += 1) {
+	     grayScaleValue.push([]);
+		 for(j=0;j<img.width;j += 1){
+			var imgData = ctx.getImageData(j,i, 1, 1);
+			
+			ctxMain.fillStyle = 'rgb(' + imgData.data[0] + ', ' +
+							   imgData.data[1] + ', '+imgData.data[2]+')';
+			ctxMain.fillRect(j * zoomSize, i * zoomSize, zoomSize, zoomSize);
+			ctxMain.fillStyle = "green";
+			ctxMain.font = "15px Kanit";
+			var grey = (imgData.data[0]*0.3) + (imgData.data[1]*0.59)+(imgData.data[2]*0.11) 
+			ctxMain.fillText(Math.round(grey),j * zoomSize+3, i * zoomSize+13);
+			grayScaleValue[i].push(Math.round(grey));
+		}
+	  }
+  }
+  {
+	  
+	  var cMain = document.getElementById("myKernelNotMove");
+	  var ctxMain = cMain.getContext("2d");
+	  cMain.width = zoomSize * kernelWidth;
+	  cMain.height = zoomSize * kernelHeight;
+	  var i;
+	  var j;
+	  for (i = 0; i < kernelHeight; i += 1) {
+		 for(j=0;j<kernelWidth;j += 1){
+			var imgData = ctx.getImageData(j,i, 1, 1);
+			ctxMain.strokeStyle = "#FFFF00";
+			ctxMain.lineWidth = 2;
+			ctxMain.strokeRect(j * zoomSize, i * zoomSize, zoomSize, zoomSize);
+			ctxMain.font = "15px Kanit";
+			ctxMain.fillStyle = "red";
+			ctxMain.fillText(kernelShowValue[i][j],j * zoomSize+(zoomSize*0.2), i * zoomSize+(zoomSize*0.9));
+		}
+	  }
+	  ctxMain.strokeStyle = "#FF0000";
+	  ctxMain.lineWidth = 2;
+	  ctxMain.strokeRect((kernelHeight-1)/2 * zoomSize, (kernelWidth-1)/2 * zoomSize, zoomSize, zoomSize);
+	
+  }
+  {
+	  var cMain = document.getElementById("myCanvasConvolution");
+	  var ctxMain = cMain.getContext("2d");
+	  cMain.width = zoomSize * img.width;
+	  cMain.height = zoomSize * img.height;
+	  
+	  var i;
+	  var j;
+	  for (i = 0; i < img.height; i += 1) {
+	     grayScaleValue.push([]);
+		 for(j=0;j<img.width;j += 1){
+			var imgData = ctx.getImageData(j,i, 1, 1);
+			
+			ctxMain.fillStyle = 'rgb(' + imgData.data[0] + ', ' +
+							   imgData.data[1] + ', '+imgData.data[2]+')';
+			ctxMain.fillRect(j * zoomSize, i * zoomSize, zoomSize, zoomSize);
+			ctxMain.fillStyle = "green";
+			ctxMain.font = "15px Kanit";
+			var grey = (imgData.data[0]*0.3) + (imgData.data[1]*0.59)+(imgData.data[2]*0.11) 
+			ctxMain.fillText(Math.round(grey),j * zoomSize+3, i * zoomSize+13);
+			grayScaleValue[i].push(Math.round(grey));
+		}
+	  }
+  }
+  {
+	  
+	  var cMain = document.getElementById("myKernel");
+	  var ctxMain = cMain.getContext("2d");
+	  cMain.width = zoomSize * kernelWidth;
+	  cMain.height = zoomSize * kernelHeight;
+	  var i;
+	  var j;
+	  for (i = 0; i < kernelHeight; i += 1) {
+		 for(j=0;j<kernelWidth;j += 1){
+			var imgData = ctx.getImageData(j,i, 1, 1);
+			ctxMain.strokeStyle = "#FFFF00";
+			ctxMain.lineWidth = 2;
+			ctxMain.strokeRect(j * zoomSize, i * zoomSize, zoomSize, zoomSize);
+			ctxMain.font = "15px Kanit";
+			ctxMain.fillStyle = "red";
+			ctxMain.fillText(kernelShowValue[i][j],j * zoomSize+(zoomSize*0.2), i * zoomSize+(zoomSize*0.9));
+		}
+	  }
+	  ctxMain.strokeStyle = "#FF0000";
+	  ctxMain.lineWidth = 2;
+	  ctxMain.strokeRect((kernelHeight-1)/2 * zoomSize, (kernelWidth-1)/2 * zoomSize, zoomSize, zoomSize);
+	
+  }
+  
+  {
+	  
+	  var cMain = document.getElementById("myOutput");
+	  var ctxMain = cMain.getContext("2d");
+	  cMain.width = zoomSize * img.width;
+	  cMain.height = zoomSize * img.height;
+	  
+	  var i;
+	  var j;
+	  for (i = 0; i < img.height; i += 1) {
+		 for(j=0;j<img.width;j += 1){
+			var imgData = ctx.getImageData(j,i, 1, 1);
+			ctxMain.fillStyle = '#000000';
+			ctxMain.fillRect(j * zoomSize, i * zoomSize, zoomSize, zoomSize);
+		}
+	  }
+  }
+  {
+	  
+	  var cMain = document.getElementById("achorKernel");
+	  var ctxMain = cMain.getContext("2d");
+	  cMain.width = zoomSize * kernelWidth;
+	  cMain.height = zoomSize * kernelHeight;
+	  ctxMain.strokeStyle = "#FF0000";
+	  ctxMain.lineWidth = 2;
+	  ctxMain.strokeRect((kernelHeight-1)/2 * zoomSize, (kernelWidth-1)/2 * zoomSize, zoomSize, zoomSize);
+	
+  }
+  
+  
+  anima();
+  anima2();
+};
+
+
+
+
+function anima(){
+   
+	var elem = document.getElementById("myKernel");
+	var elemPic =    document.getElementById("myCanvasConvolution");
+	var pos = 0;
+	var id = setInterval(frame, duration);
+	var allStepX = img.width - (Math.ceil(kernelWidth/2));
+	var allStepY = img.height - (Math.ceil(kernelHeight/2));
+	var x=0;
+	var y=0;
+	var beginX = elemPic.offsetLeft;
+	var beginY = elemPic.offsetTop;
+	var targetX,targetY;
+	targetX = (beginX+x*zoomSize);
+	targetY = (beginY+y*zoomSize);
+	var stepX=beginX,stepY=beginY;
+	var changeDelayToggle = false;
+	function frame() {
+		beginX = elemPic.offsetLeft;
+		beginY = elemPic.offsetTop;
+		if (y == allStepY) {
+		  clearInterval(id);
+		} else {
+		    if(changeDelayToggle)
+			{
+			   clearInterval(id);
+			   id = setInterval(frame, 10);
+			   changeDelayToggle = false;
+			}
+			if(x>=allStepX)
+			{
+			  x=0;
+			  y++;
+			  targetX = (beginX+x*zoomSize);
+			  targetY = (beginY+y*zoomSize);
+			}
+			else
+			{
+			  
+			  if(stepX > targetX)
+			  {
+			     stepX -= 10
+			  }
+			  else if(stepX < targetX)
+			  {
+			     stepX += 1;
+			  }
+			  
+			  
+			  if(stepY > targetY)
+			  {
+			     stepY -= 10
+			  }
+			  else if(stepY < targetY)
+			  {
+			     stepY += 1;
+			  }
+			  
+			  
+			  elem.style.left = stepX + 'px'; 
+			  elem.style.top = stepY + 'px';
+			  
+			  if(stepX == targetX && stepY == targetY){
+			     changeDelayToggle = true;
+				 x++;
+				 targetX = (beginX+x*zoomSize);
+			     targetY = (beginY+y*zoomSize);
+				 clearInterval(id);
+				 id = setInterval(frame, delay);
+				 
+				 
+			  }
+			  
+			}		   
+		}
+	}
+}
+
+function anima2(){
+    var cMain = document.getElementById("myOutput");
+	var ctxMain = cMain.getContext("2d");
+	var elem = document.getElementById("achorKernel");
+	var elemPic =    document.getElementById("myOutput");
+	var pos = 0;
+	var id = setInterval(frame, duration);
+	var allStepX = img.width - (Math.ceil(kernelWidth/2));
+	var allStepY = img.height - (Math.ceil(kernelHeight/2));
+	var x=0;
+	var y=0;
+	var beginX = elemPic.offsetLeft;
+	var beginY = elemPic.offsetTop;
+	var targetX,targetY;
+	targetX = (beginX+x*zoomSize);
+	targetY = (beginY+y*zoomSize);
+	var stepX=beginX,stepY=beginY;
+	var changeDelayToggle = false;
+	function frame() {
+	    beginX = elemPic.offsetLeft;
+		beginY = elemPic.offsetTop;
+		if (y == allStepY) {
+		  clearInterval(id);
+		} else {
+		    if(changeDelayToggle)
+			{
+			   clearInterval(id);
+			   id = setInterval(frame, 10);
+			   changeDelayToggle = false;
+			}
+			if(x>=allStepX)
+			{
+			  x=0;
+			  y++;
+			  targetX = (beginX+x*zoomSize);
+			  targetY = (beginY+y*zoomSize);
+			}
+			else
+			{
+			  
+			  if(stepX > targetX)
+			  {
+			     stepX -= 10
+			  }
+			  else if(stepX < targetX)
+			  {
+			     stepX += 1;
+			  }
+			  
+			  
+			  if(stepY > targetY)
+			  {
+			     stepY -= 10
+			  }
+			  else if(stepY < targetY)
+			  {
+			     stepY += 1;
+			  }
+			 
+			  
+			  elem.style.left = stepX + 'px'; 
+			  elem.style.top = stepY + 'px';
+			   if(stepX == targetX && stepY == targetY){
+				 var newValue = calConvolution(x,y);
+				 var color = 'rgb(' + newValue + ', ' +
+							   newValue + ', '+newValue+')';
+				 changeCanvasColor(ctxMain,x,y,zoomSize,color,newValue)
+				 updateFormular(x,y);
+			     changeDelayToggle = true;
+				 x++;
+				 targetX = (beginX+x*zoomSize);
+			     targetY = (beginY+y*zoomSize);
+				 clearInterval(id);
+				 id = setInterval(frame, delay);
+			  }
+			}		   
+		}
+	}
+}
+
+function changeCanvasColor(ctx,x,y,size,color,label){
+   ctx.fillStyle = color;
+   ctx.fillRect((x+(kernelWidth-1)/2) * zoomSize, (y+(kernelHeight-1)/2) * zoomSize, zoomSize, zoomSize);
+   ctx.font = "15px Kanit";
+   ctx.fillStyle = "green";
+   ctx.fillText(label,(x+(kernelWidth-1)/2) * zoomSize+3, (y+(kernelHeight-1)/2) * zoomSize+13);
+   
+}
+
+function updateFormular(leftPic,topPic)
+{
+    var formular = document.getElementById("formular");
+	var strFormular = "";
+	var total = 0;
+	for(y=0;y<kernelHeight;y++)
+	{
+		if(y>0)
+		{
+			strFormular += " + ";
+		}
+		for(x=0;x<kernelWidth;x++)
+		{
+			total += grayScaleValue[topPic+y][leftPic+x] * kernelValue[y][x];
+			strFormular += "("+grayScaleValue[topPic+y][leftPic+x]+"*"+kernelShowValue[y][x]+")"
+			if(x < kernelWidth-1)
+			{
+			   strFormular += " + ";
+			}
+		}
+	}
+	strFormular += " = " + total.toFixed(2) + " ≈ " + Math.round(total);
+	formular.innerHTML = strFormular;
+}
+
+function calConvolution(leftPic,topPic)
+{
+	var total = 0;
+	for(y=0;y<kernelHeight;y++)
+	{
+		for(x=0;x<kernelWidth;x++)
+		{
+			total += grayScaleValue[topPic+y][leftPic+x] * kernelValue[y][x];
+		}
+	}
+	return Math.round(total);
+}
+
+
+
+
+ 
+</script>
+<footer>
+  <p>Author: Suppachai Nuthep<br>
+  <div style="font-size: 15px;">
+	  Email: <a href="ecoding.programming@gmail.com">ecoding.programming@gmail.com</a><br>
+	  Facebook: <a href="https://www.facebook.com/ECodingProgramming">ECoding</a><br>
+	  Youtube: <a href="https://youtu.be/k0lXXR-Ffo0">Ecoding chanel</a><br>
+  </div>
+  </p>
+</footer>
+</body>
+</html>
